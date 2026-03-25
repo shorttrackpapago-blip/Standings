@@ -378,8 +378,10 @@ function render(cat, rows) {
       headerIdx = i; break;
     }
   }
-  const data = rows.slice(headerIdx + 1).filter(r => r[0] && r[0].trim() !== '');
-  const maxPts = Math.max(...data.map(r => parseFloat(r[1]) || 0));
+  // A=r[0] blank, B=r[1] Rider, C=r[2] Points, D=r[3] Wins, E=r[4] Bonus,
+  // F=r[5] Top5s, G=r[6] Top10s, H=r[7] AvgFin, I=r[8] Finishes, J=r[9] Fin%, K=r[10] AvgAll
+  const data = rows.slice(headerIdx + 1).filter(r => r[1] && r[1].trim() !== '');
+  const maxPts = Math.max(...data.map(r => parseFloat(r[2]) || 0));
 
   // Podium
   const podium = document.getElementById('podium-' + cat);
@@ -388,19 +390,19 @@ function render(cat, rows) {
   const badgeColors = [cfg.accent, cfg.secondary, cfg.secondary + '88'];
   for (let i = 0; i < Math.min(3, data.length); i++) {
     const r = data[i];
-    const wins = r[2] || '0';
+    const wins = r[3] || '0';
     const card = document.createElement('div');
     card.className = 'podium-card p' + (i + 1);
     card.setAttribute('data-pos', i + 1);
     card.style.borderTop = '3px solid ' + podBorders[i];
     card.innerHTML = `
       <div class="pos-badge" style="color:${badgeColors[i]}">${labels[i]}</div>
-      <div class="podium-name">${r[0] || '—'}</div>
-      <div class="podium-pts">${fmt(r[1])}<span style="font-size:14px;font-weight:400;color:var(--muted);margin-left:4px">pts</span></div>
+      <div class="podium-name">${r[1] || '—'}</div>
+      <div class="podium-pts">${fmt(r[2])}<span style="font-size:14px;font-weight:400;color:var(--muted);margin-left:4px">pts</span></div>
       <div class="podium-stats">
         <div class="podium-stat"><strong>${wins}</strong> win${wins !== '1' ? 's' : ''}</div>
-        <div class="podium-stat"><strong>${fmt(r[4])}</strong> top 5s</div>
-        <div class="podium-stat"><strong>${fmt(r[8])}</strong> fin%</div>
+        <div class="podium-stat"><strong>${fmt(r[5])}</strong> top 5s</div>
+        <div class="podium-stat"><strong>${fmt(r[9])}</strong> fin%</div>
       </div>`;
     podium.appendChild(card);
   }
@@ -417,28 +419,28 @@ function render(cat, rows) {
   // Rows
   const tbody = document.getElementById('tbody-' + cat);
   data.forEach((r, i) => {
-    const pts = parseFloat(r[1]) || 0;
+    const pts = parseFloat(r[2]) || 0;
     const pct = maxPts > 0 ? (pts / maxPts * 100).toFixed(0) : 0;
-    const wins = r[2] || '0';
+    const wins = r[3] || '0';
     const isZero = wins === '0' || wins === '';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><span class="pos-num">${i + 1}</span></td>
-      <td>${r[0] || '—'}</td>
+      <td>${r[1] || '—'}</td>
       <td>
         <div class="pts-bar-wrap">
-          <span class="pts-cell">${fmt(r[1])}</span>
+          <span class="pts-cell">${fmt(r[2])}</span>
           <div class="pts-bar"><div class="pts-bar-fill" style="width:${pct}%;background:${cfg.accent}"></div></div>
         </div>
       </td>
       <td><span class="wins-cell${isZero ? ' zero' : ''}" style="color:${isZero ? '' : cfg.secondary}">${wins}</span></td>
-      <td>${fmt(r[3])}</td>
       <td>${fmt(r[4])}</td>
       <td>${fmt(r[5])}</td>
       <td>${fmt(r[6])}</td>
       <td>${fmt(r[7])}</td>
       <td>${fmt(r[8])}</td>
-      <td>${fmt(r[9])}</td>`;
+      <td>${fmt(r[9])}</td>
+      <td>${fmt(r[10])}</td>`;
     tbody.appendChild(tr);
   });
 
