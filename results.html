@@ -285,7 +285,7 @@ function renderResults() {
   const thead = document.getElementById('results-thead');
   if (isWomen) {
     thead.innerHTML = `<tr>
-      <th>Overall</th><th>Rider</th><th>Women's Pos</th><th>Pts</th><th>Chaos</th>
+      <th>Women's Pos</th><th>Rider</th><th>Overall</th><th>Pts</th><th>Chaos</th>
     </tr>`;
   } else {
     thead.innerHTML = `<tr>
@@ -323,9 +323,9 @@ function renderResults() {
 
     if (isWomen) {
       tr.innerHTML = `
-        <td><span class="pos-num">${r.overallPos}</span></td>
+        <td><span class="pos-num">${r.wPos}</span></td>
         <td>${r.name}</td>
-        <td><span class="w-pos">${r.wPos}</span></td>
+        <td><span class="w-pos">${r.overallPos}</span></td>
         <td><span class="pts-val">${r.pts}</span></td>
         <td>${chaosCell}</td>`;
     } else {
