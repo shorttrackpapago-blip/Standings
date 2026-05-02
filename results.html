@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weekly Results</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --red: #F4201E;
+  --blue: #28A3DA;
+  --bg: #0D0D0F;
+  --surface: #17171B;
+  --surface2: #1F1F25;
+  --border: #2A2A32;
+  --text: #FFFFFF;
+  --muted: #888899;
+}
+body { background: var(--bg); color: var(--text); font-family: 'Barlow', sans-serif; min-height: 100vh; }
+.header { background: var(--surface); border-bottom: 3px solid var(--red); padding: 20px 28px 0; position: relative; overflow: hidden; }
+.header::before { content: ''; position: absolute; top: 0; right: 0; width: 40%; height: 100%; background: linear-gradient(135deg, transparent 50%, rgba(244,32,30,0.05) 100%); pointer-events: none; }
+.header-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-bottom: 16px; }
+.series-label { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--red); margin-bottom: 4px; }
+.series-title { font-family: 'Barlow Condensed', sans-serif; font-size: 32px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text); line-height: 1; }
+.season-badge { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; margin-top: 5px; }
+.updated-tag { font-size: 12px; color: var(--muted); text-align: right; line-height: 1.5; }
+.updated-tag small { display: block; font-size: 11px; color: #444455; }
+
+/* Filter tabs */
+.filter-bar { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 20px; }
+.filter-btn { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 11px 20px 10px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--muted); cursor: pointer; transition: color 0.15s; position: relative; bottom: -1px; }
+.filter-btn:hover { color: var(--text); }
+.filter-btn.active { color: var(--text); border-bottom-color: var(--muted); }
+.filter-btn.mens.active  { border-bottom-color: var(--red); color: var(--text); }
+.filter-btn.womens.active{ border-bottom-color: var(--blue); color: var(--text); }
+.dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 7px; position: relative; top: -1px; }
+.dot-all    { background: var(--muted); }
+.dot-mens   { background: var(--red); }
+.dot-womens { background: var(--blue); }
+
+/* Race strip */
+.race-strip-wrap { background: var(--surface2); border-bottom: 1px solid var(--border); overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.race-strip-wrap::-webkit-scrollbar { display: none; }
+.race-strip { display: flex; min-width: max-content; padding: 0 16px; }
+.race-btn { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 10px 16px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--muted); cursor: pointer; white-space: nowrap; transition: color 0.12s; position: relative; bottom: -1px; }
+.race-btn:hover { color: var(--text); }
+.race-btn.active { color: var(--text); border-bottom-color: var(--red); }
+.race-btn .race-date { display: block; font-size: 10px; font-weight: 400; color: var(--muted); margin-top: 1px; }
+.race-btn.active .race-date { color: var(--red); }
+.race-btn.is-latest::after { content: 'LATEST'; font-size: 8px; font-weight: 700; letter-spacing: 0.1em; background: var(--red); color: #fff; padding: 1px 4px; border-radius: 2px; margin-left: 5px; position: relative; top: -1px; }
+
+/* Table */
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+thead { background: var(--surface2); border-bottom: 1px solid var(--border); }
+thead th { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding: 10px 14px; text-align: right; white-space: nowrap; }
+thead th:first-child, thead th:nth-child(2) { text-align: left; }
+tbody tr { border-bottom: 1px solid var(--border); transition: background 0.12s; }
+tbody tr:hover { background: var(--surface2); }
+td { padding: 11px 14px; text-align: right; color: var(--text); white-space: nowrap; }
+td:first-child { text-align: left; width: 38px; padding-left: 16px; }
+td:nth-child(2) { text-align: left; font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; min-width: 140px; }
+.pos-num  { font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 700; color: var(--muted); }
+.pts-val  { font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 700; }
+.chaos-val{ font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 600; color: var(--blue); }
+.m-pos    { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; color: var(--red);  font-weight: 600; }
+.w-pos    { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; color: var(--blue); font-weight: 600; }
+.gender-tag { display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; padding: 1px 5px; border-radius: 2px; margin-left: 6px; vertical-align: middle; position: relative; top: -1px; }
+.gender-tag.w { background: rgba(40,163,218,0.15); color: var(--blue); border: 1px solid rgba(40,163,218,0.3); }
+.gender-tag.m { background: rgba(244,32,30,0.12); color: var(--red);  border: 1px solid rgba(244,32,30,0.25); }
+
+.state-msg { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 14px; }
+.state-msg .spinner { width: 28px; height: 28px; border: 2px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 14px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.no-results { text-align: center; padding: 48px 20px; color: var(--muted); font-family: 'Barlow Condensed', sans-serif; font-size: 16px; letter-spacing: 0.05em; }
+.footer { padding: 12px 28px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+.footer-note { font-size: 11px; color: #333344; letter-spacing: 0.05em; text-transform: uppercase; }
+.live-dot { display: inline-block; width: 6px; height: 6px; background: var(--blue); border-radius: 50%; margin-right: 5px; animation: pulse 2s ease infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+@media (max-width: 600px) {
+  .series-title { font-size: 22px; }
+  .header, .filter-bar { padding-left: 16px; padding-right: 16px; }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-top">
+    <div>
+      <div class="series-label">Race Results</div>
+      <div class="series-title">2026 Season</div>
+      <div class="season-badge">Weekly Results</div>
+    </div>
+    <div class="updated-tag">
+      <span class="live-dot"></span>Live from Google Sheets
+      <small id="fetch-time"></small>
+    </div>
+  </div>
+</header>
+
+<!-- All / Men's / Women's filter -->
+<div class="filter-bar">
+  <button class="filter-btn all active"  onclick="setFilter('all')"><span class="dot dot-all"></span>All</button>
+  <button class="filter-btn mens"        onclick="setFilter('m')"><span class="dot dot-mens"></span>Men's</button>
+  <button class="filter-btn womens"      onclick="setFilter('w')"><span class="dot dot-womens"></span>Women's</button>
+</div>
+
+<!-- Race tab strip -->
+<div class="race-strip-wrap">
+  <div class="race-strip" id="race-strip"></div>
+</div>
+
+<!-- Content -->
+<div id="loading" class="state-msg"><div class="spinner"></div>Loading results…</div>
+<div id="results-wrap" style="display:none">
+  <div class="table-wrap">
+    <table id="results-table">
+      <thead id="results-thead"></thead>
+      <tbody id="results-tbody"></tbody>
+    </table>
+  </div>
+  <div id="no-results" class="no-results" style="display:none">No finishers for this filter.</div>
+</div>
+<div id="error-msg" class="state-msg" style="display:none">Could not load results.</div>
+
+<footer class="footer">
+  <div class="footer-note"><span class="live-dot"></span>Data synced from Google Sheets</div>
+  <div class="footer-note">Updates on page refresh</div>
+</footer>
+
+<script>
+const BASE         = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTkmm1p4DmZ97G9MtZpI-uA9npmCyyxGqkhmG_uVhks5U0ZWNcvtFAEoXPB8Q6aFKb3dYPO9F-vVQ1W/pub?single=true&output=csv";
+const SETTINGS_GID = "2072593377";
+const ROSTER_GID   = "2044157008";
+
+let allWeeks    = [];
+let genderMap   = {};
+let activeWeek  = 0;
+let activeFilter= 'all';
+
+function parseCSV(text) {
+  return text.trim().split('\n').map(line => {
+    const cells = []; let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQ = !inQ; continue; }
+      if (c === ',' && !inQ) { cells.push(cur.trim()); cur = ''; continue; }
+      cur += c;
+    }
+    cells.push(cur.trim());
+    return cells;
+  });
+}
+
+async function fetchCSV(gid) {
+  const res = await fetch(BASE + '&gid=' + gid);
+  if (!res.ok) throw new Error('fetch failed');
+  return parseCSV(await res.text());
+}
+
+function parseCell(raw) {
+  if (!raw || !raw.trim()) return null;
+  const s = raw.trim();
+  const isFemale   = s.includes('*');
+  const chaosMatch = s.match(/(\d+)/);
+  const chaos = chaosMatch ? parseInt(chaosMatch[1]) : 0;
+  const name  = s.replace('*', '').replace(/\d+/g, '').trim();
+  if (!name) return null;
+  return { name, isFemale, chaos };
+}
+
+function buildWeeks(settingsRows, rosterRows) {
+  rosterRows.forEach(row => {
+    const name   = (row[0] || '').trim();
+    const gender = (row[2] || '').trim().toLowerCase();
+    if (name && (gender === 'm' || gender === 'f')) genderMap[name.toLowerCase()] = gender;
+  });
+
+  const rosterNames = rosterRows.map(r => (r[0] || '').trim()).filter(Boolean);
+  function canonical(name) {
+    return rosterNames.find(n => n.toLowerCase() === name.toLowerCase()) || name;
+  }
+
+  const dateRow  = settingsRows[0] || [];
+  const labelRow = settingsRows[1] || [];
+  const dataRows = settingsRows.slice(2);
+  const numCols  = dateRow.length - 1;
+
+  const weeks = [];
+  for (let w = 0; w < numCols; w++) {
+    const colData = [];
+    dataRows.forEach(row => {
+      const parsed = parseCell(row[w + 1]);
+      if (parsed) colData.push(parsed);
+    });
+    if (colData.length === 0) continue;
+
+    // Gender-relative ordering
+    const maleList   = colData.filter(r => (genderMap[canonical(r.name).toLowerCase()] || (r.isFemale ? 'f' : 'm')) === 'm');
+    const femaleList = colData.filter(r => (genderMap[canonical(r.name).toLowerCase()] || (r.isFemale ? 'f' : 'm')) === 'f');
+
+    const riders = colData.map((r, idx) => {
+      const overallPos = idx + 1;
+      const cname      = canonical(r.name);
+      const gender     = genderMap[cname.toLowerCase()] || (r.isFemale ? 'f' : 'm');
+      const genderList = gender === 'f' ? femaleList : maleList;
+      const genderPos  = genderList.findIndex(x => canonical(x.name).toLowerCase() === cname.toLowerCase()) + 1;
+      const pts        = Math.max(1, 101 - genderPos);
+      return {
+        name: cname, gender,
+        chaos: r.chaos,
+        overallPos,
+        genderPos,
+        pts,
+        mPos: gender === 'm' ? genderPos : null,
+        wPos: gender === 'f' ? genderPos : null
+      };
+    });
+
+    weeks.push({
+      label: (labelRow[w + 1] || `Week ${w + 1}`).trim(),
+      date:  (dateRow[w + 1]  || '').trim(),
+      riders
+    });
+  }
+  return weeks;
+}
+
+function buildRaceStrip() {
+  const strip = document.getElementById('race-strip');
+  strip.innerHTML = '';
+  allWeeks.forEach((week, i) => {
+    const isLatest = i === allWeeks.length - 1;
+    const btn = document.createElement('button');
+    btn.className = 'race-btn' + (i === activeWeek ? ' active' : '') + (isLatest ? ' is-latest' : '');
+    btn.innerHTML = `${week.label}<span class="race-date">${week.date}</span>`;
+    btn.onclick = () => selectWeek(i);
+    strip.appendChild(btn);
+  });
+  requestAnimationFrame(() => {
+    const el = strip.children[activeWeek];
+    if (el) el.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+  });
+}
+
+function selectWeek(idx) {
+  activeWeek = idx;
+  document.querySelectorAll('.race-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+  renderResults();
+}
+
+function setFilter(f) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.filter-btn.' + (f === 'all' ? 'all' : (f === 'm' ? 'mens' : 'womens'))).classList.add('active');
+  renderResults();
+}
+
+function renderResults() {
+  const week = allWeeks[activeWeek];
+  if (!week) return;
+
+  const noResults = document.getElementById('no-results');
+  const table     = document.getElementById('results-table');
+  const tbody     = document.getElementById('results-tbody');
+  const thead     = document.getElementById('results-thead');
+
+  // Filter riders
+  let riders = week.riders;
+  if (activeFilter === 'm') riders = riders.filter(r => r.gender === 'm');
+  if (activeFilter === 'w') riders = riders.filter(r => r.gender === 'f');
+
+  // Sort: women's filter by wPos, men's by mPos, all by overallPos
+  if (activeFilter === 'w') riders = [...riders].sort((a, b) => a.wPos - b.wPos);
+  if (activeFilter === 'm') riders = [...riders].sort((a, b) => a.mPos - b.mPos);
+
+  if (riders.length === 0) {
+    table.style.display = 'none';
+    noResults.style.display = 'block';
+    return;
+  }
+  table.style.display = 'table';
+  noResults.style.display = 'none';
+
+  // Accent color for top-3 border
+  const accent = activeFilter === 'w' ? 'var(--blue)' : activeFilter === 'm' ? 'var(--red)' : 'var(--muted)';
+
+  // Remove old accent style
+  const old = document.getElementById('results-accent-style');
+  if (old) old.remove();
+  const s = document.createElement('style');
+  s.id = 'results-accent-style';
+  s.textContent = `
+    #results-tbody tr:nth-child(1) td:first-child { border-left: 3px solid ${accent}; }
+    #results-tbody tr:nth-child(2) td:first-child { border-left: 3px solid ${accent === 'var(--muted)' ? 'var(--muted)' : accent + '99'}; }
+    #results-tbody tr:nth-child(3) td:first-child { border-left: 3px solid ${accent === 'var(--muted)' ? 'var(--muted)' : accent + '55'}; }
+  `;
+  document.head.appendChild(s);
+
+  // Header
+  if (activeFilter === 'all') {
+    thead.innerHTML = `<tr><th>Overall</th><th>Rider</th><th>Men's</th><th>Women's</th><th>Pts</th><th>Chaos</th></tr>`;
+  } else if (activeFilter === 'm') {
+    thead.innerHTML = `<tr><th>Pos</th><th>Rider</th><th>Overall</th><th>Pts</th><th>Chaos</th></tr>`;
+  } else {
+    thead.innerHTML = `<tr><th>Pos</th><th>Rider</th><th>Overall</th><th>Pts</th><th>Chaos</th></tr>`;
+  }
+
+  tbody.innerHTML = '';
+  riders.forEach(r => {
+    const tr = document.createElement('tr');
+    const chaosCell = r.chaos > 0
+      ? `<span class="chaos-val">+${r.chaos}</span>`
+      : `<span style="color:var(--muted)">—</span>`;
+
+    if (activeFilter === 'all') {
+      const mPosCell = r.mPos ? `<span class="m-pos">${r.mPos}</span>` : `<span style="color:var(--muted)">—</span>`;
+      const wPosCell = r.wPos ? `<span class="w-pos">${r.wPos}</span>` : `<span style="color:var(--muted)">—</span>`;
+      const tag = `<span class="gender-tag ${r.gender}">${r.gender === 'f' ? 'W' : 'M'}</span>`;
+      tr.innerHTML = `
+        <td><span class="pos-num">${r.overallPos}</span></td>
+        <td>${r.name}${tag}</td>
+        <td>${mPosCell}</td>
+        <td>${wPosCell}</td>
+        <td><span class="pts-val" style="color:${r.gender === 'f' ? 'var(--blue)' : 'var(--red)'}">${r.pts}</span></td>
+        <td>${chaosCell}</td>`;
+    } else if (activeFilter === 'm') {
+      tr.innerHTML = `
+        <td><span class="pos-num">${r.mPos}</span></td>
+        <td>${r.name}</td>
+        <td><span style="color:var(--muted)">${r.overallPos}</span></td>
+        <td><span class="pts-val" style="color:var(--red)">${r.pts}</span></td>
+        <td>${chaosCell}</td>`;
+    } else {
+      tr.innerHTML = `
+        <td><span class="pos-num">${r.wPos}</span></td>
+        <td>${r.name}</td>
+        <td><span style="color:var(--muted)">${r.overallPos}</span></td>
+        <td><span class="pts-val" style="color:var(--blue)">${r.pts}</span></td>
+        <td>${chaosCell}</td>`;
+    }
+    tbody.appendChild(tr);
+  });
+}
+
+(async () => {
+  try {
+    const [settingsRows, rosterRows] = await Promise.all([
+      fetchCSV(SETTINGS_GID),
+      fetchCSV(ROSTER_GID)
+    ]);
+
+    allWeeks = buildWeeks(settingsRows, rosterRows);
+
+    if (allWeeks.length === 0) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error-msg').style.display = 'block';
+      document.getElementById('error-msg').querySelector ? null : null;
+      document.getElementById('error-msg').textContent = 'No race results yet.';
+      return;
+    }
+
+    activeWeek = allWeeks.length - 1;
+    buildRaceStrip();
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('results-wrap').style.display = 'block';
+    renderResults();
+
+    document.getElementById('fetch-time').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  } catch (e) {
+    console.error(e);
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error-msg').style.display = 'block';
+  }
+})();
+</script>
+</body>
+</html>
