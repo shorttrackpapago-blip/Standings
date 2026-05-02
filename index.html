@@ -220,14 +220,15 @@ function buildStandings(settingsRows, rosterRows) {
   const totalRaces = weeks.length;
 
   weeks.forEach(col => {
-    // Determine female riders in this week and their relative order
-    const femaleOrder = col
-      .filter(r => {
-        const cname = canonical(r.name);
-        const g = genderMap[cname.toLowerCase()] || (r.isFemale ? 'f' : 'm');
-        return g === 'f';
-      })
-      .map(r => canonical(r.name));
+    // Split into gender-ordered arrays
+    const maleCol = col.filter(r => {
+      const cname = canonical(r.name);
+      return (genderMap[cname.toLowerCase()] || (r.isFemale ? 'f' : 'm')) === 'm';
+    });
+    const femaleCol = col.filter(r => {
+      const cname = canonical(r.name);
+      return (genderMap[cname.toLowerCase()] || (r.isFemale ? 'f' : 'm')) === 'f';
+    });
 
     col.forEach((rider, overallIdx) => {
       const overallPos = overallIdx + 1;
@@ -235,24 +236,18 @@ function buildStandings(settingsRows, rosterRows) {
       if (!stats[name]) return;
 
       const gender = genderMap[name.toLowerCase()] || (rider.isFemale ? 'f' : 'm');
+      const genderCol = gender === 'f' ? femaleCol : maleCol;
+      const genderPos = genderCol.findIndex(r => canonical(r.name).toLowerCase() === name.toLowerCase()) + 1;
 
-      // Points always based on overall position
-      stats[name].points  += Math.max(1, 101 - overallPos);
-      stats[name].chaos   += rider.chaos;
+      // Points based on gender-relative position
+      stats[name].points   += Math.max(1, 101 - genderPos);
+      stats[name].chaos    += rider.chaos;
       stats[name].finishes += 1;
-      stats[name].posSum  += overallPos;
+      stats[name].posSum   += overallPos;
 
-      if (gender === 'f') {
-        // Use gender-relative position for wins/top5/top10
-        const femPos = femaleOrder.indexOf(name) + 1;
-        if (femPos === 1) stats[name].wins  += 1;
-        if (femPos <= 5)  stats[name].top5s += 1;
-        if (femPos <= 10) stats[name].top10s += 1;
-      } else {
-        if (overallPos === 1) stats[name].wins  += 1;
-        if (overallPos <= 5)  stats[name].top5s += 1;
-        if (overallPos <= 10) stats[name].top10s += 1;
-      }
+      if (genderPos === 1) stats[name].wins   += 1;
+      if (genderPos <= 5)  stats[name].top5s  += 1;
+      if (genderPos <= 10) stats[name].top10s += 1;
     });
   });
 

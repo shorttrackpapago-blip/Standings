@@ -65,6 +65,7 @@ td:nth-child(2) { text-align: left; font-family: 'Barlow Condensed', sans-serif;
 .chaos-val { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 600; color: var(--blue); }
 .female-tag { display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; background: rgba(40,163,218,0.15); color: var(--blue); border: 1px solid rgba(40,163,218,0.3); padding: 1px 5px; border-radius: 2px; margin-left: 6px; vertical-align: middle; position: relative; top: -1px; }
 .w-pos { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; color: var(--blue); font-weight: 600; }
+.m-pos { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; color: var(--red); font-weight: 600; }
 
 .state-msg { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 14px; }
 .state-msg .spinner { width: 28px; height: 28px; border: 2px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 14px; }
@@ -199,21 +200,20 @@ function buildWeeks(settingsRows, rosterRows) {
     });
     if (colData.length === 0) continue; // skip empty weeks
 
-    // Assign overall positions and compute gender-relative positions
-    const femaleOrder = colData
-      .filter(r => {
-        const cname = canonical(r.name);
-        return (genderMap[cname.toLowerCase()] || (r.isFemale ? 'f' : 'm')) === 'f';
-      })
-      .map(r => canonical(r.name));
+    // Build gender-ordered sublists (preserving overall order within each gender)
+    const maleList   = colData.filter(r => (genderMap[canonical(r.name).toLowerCase()] || (r.isFemale ? 'f' : 'm')) === 'm');
+    const femaleList = colData.filter(r => (genderMap[canonical(r.name).toLowerCase()] || (r.isFemale ? 'f' : 'm')) === 'f');
 
     const riders = colData.map((r, idx) => {
       const overallPos = idx + 1;
       const cname      = canonical(r.name);
       const gender     = genderMap[cname.toLowerCase()] || (r.isFemale ? 'f' : 'm');
-      const pts        = Math.max(1, 101 - overallPos);
-      const wPos       = gender === 'f' ? femaleOrder.indexOf(cname) + 1 : null;
-      return { name: cname, gender, isFemale: gender === 'f', chaos: r.chaos, overallPos, pts, wPos };
+      const genderList = gender === 'f' ? femaleList : maleList;
+      const genderPos  = genderList.findIndex(x => canonical(x.name).toLowerCase() === cname.toLowerCase()) + 1;
+      const pts        = Math.max(1, 101 - genderPos);
+      const mPos       = gender === 'm' ? genderPos : null;
+      const wPos       = gender === 'f' ? genderPos : null;
+      return { name: cname, gender, isFemale: gender === 'f', chaos: r.chaos, overallPos, genderPos, pts, mPos, wPos };
     });
 
     weeks.push({
@@ -281,19 +281,15 @@ function renderResults() {
   table.style.display = 'table';
   noResults.style.display = 'none';
 
-  // Header
-  const thead = document.getElementById('results-thead');
-  if (isWomen) {
-    thead.innerHTML = `<tr>
-      <th>Women's Pos</th><th>Rider</th><th>Overall</th><th>Pts</th><th>Chaos</th>
-    </tr>`;
-  } else {
-    thead.innerHTML = `<tr>
-      <th>Pos</th><th>Rider</th><th>Pts</th><th>Chaos</th>
-    </tr>`;
-  }
+  const tbody = document.getElementById('results-tbody');
+  tbody.innerHTML = '';
 
-  // Remove old accent styles for this table
+  // Always show all three position columns
+  document.getElementById('results-thead').innerHTML = `<tr>
+    <th>Overall</th><th>Rider</th><th>Men's</th><th>Women's</th><th>Pts</th><th>Chaos</th>
+  </tr>`;
+
+  // Remove old accent styles
   const oldStyle = document.getElementById('results-accent-style');
   if (oldStyle) oldStyle.remove();
   const accent = isWomen ? '#28A3DA' : '#F4201E';
@@ -306,35 +302,25 @@ function renderResults() {
   `;
   document.head.appendChild(s);
 
-  // Rows
-  const tbody = document.getElementById('results-tbody');
-  tbody.innerHTML = '';
+  // For women's view sort by wPos, men's by mPos, all by overallPos
+  let sorted = [...riders];
+  if (isWomen) sorted = sorted.sort((a, b) => a.wPos - b.wPos);
 
-  // For women's view, re-rank by wPos
-  if (isWomen) {
-    riders = [...riders].sort((a, b) => a.wPos - b.wPos);
-  }
-
-  riders.forEach((r, displayIdx) => {
+  sorted.forEach(r => {
     const tr = document.createElement('tr');
     const chaosCell = r.chaos > 0
       ? `<span class="chaos-val">+${r.chaos}</span>`
       : `<span style="color:var(--muted)">—</span>`;
+    const mPosCell = r.mPos ? `<span class="m-pos">${r.mPos}</span>` : `<span style="color:var(--muted)">—</span>`;
+    const wPosCell = r.wPos ? `<span class="w-pos">${r.wPos}</span>` : `<span style="color:var(--muted)">—</span>`;
 
-    if (isWomen) {
-      tr.innerHTML = `
-        <td><span class="pos-num">${r.wPos}</span></td>
-        <td>${r.name}</td>
-        <td><span class="w-pos">${r.overallPos}</span></td>
-        <td><span class="pts-val">${r.pts}</span></td>
-        <td>${chaosCell}</td>`;
-    } else {
-      tr.innerHTML = `
-        <td><span class="pos-num">${r.overallPos}</span></td>
-        <td>${r.name}${r.gender === 'f' ? '<span class="female-tag">W</span>' : ''}</td>
-        <td><span class="pts-val">${r.pts}</span></td>
-        <td>${chaosCell}</td>`;
-    }
+    tr.innerHTML = `
+      <td><span class="pos-num">${r.overallPos}</span></td>
+      <td>${r.name}${r.gender === 'f' ? '<span class="female-tag">W</span>' : ''}</td>
+      <td>${mPosCell}</td>
+      <td>${wPosCell}</td>
+      <td><span class="pts-val">${r.pts}</span></td>
+      <td>${chaosCell}</td>`;
     tbody.appendChild(tr);
   });
 }
