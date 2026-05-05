@@ -228,7 +228,7 @@ function buildStandings(settingsRows, rosterRows) {
   const stats = {};
   riderSet.forEach(name => {
     const gender = genderMap[name.toLowerCase()] || 'm';
-    stats[name] = { name, gender, points: 0, wins: 0, chaos: 0, top5s: 0, top10s: 0, finishes: 0, posSum: 0 };
+    stats[name] = { name, gender, points: 0, wins: 0, chaos: 0, top5s: 0, top10s: 0, finishes: 0, posSum: 0, genderPosSum: 0 };
   });
 
   const totalRaces = weeks.length;
@@ -249,7 +249,8 @@ function buildStandings(settingsRows, rosterRows) {
       stats[name].points   += Math.max(1, 101 - genderPos);
       stats[name].chaos    += rider.chaos;
       stats[name].finishes += 1;
-      stats[name].posSum   += overallPos;
+      stats[name].posSum        += overallPos;
+      stats[name].genderPosSum += genderPos;
 
       if (genderPos === 1) stats[name].wins   += 1;
       if (genderPos <= 5)  stats[name].top5s  += 1;
@@ -258,9 +259,10 @@ function buildStandings(settingsRows, rosterRows) {
   });
 
   Object.values(stats).forEach(r => {
-    r.avgFin = r.finishes > 0 ? r.posSum / r.finishes : 0;
+    const posSum = r.gender === 'f' ? r.genderPosSum : r.posSum;
+    r.avgFin = r.finishes > 0 ? posSum / r.finishes : 0;
     r.finPct = totalRaces  > 0 ? (r.finishes / totalRaces) * 100 : 0;
-    r.avgAll = totalRaces  > 0 ? r.posSum / totalRaces : 0;
+    r.avgAll = totalRaces  > 0 ? posSum / totalRaces : 0;
   });
 
   const sort = arr => arr.sort((a, b) => b.points - a.points || a.avgFin - b.avgFin);
