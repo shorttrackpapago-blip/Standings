@@ -301,7 +301,7 @@ function renderResults() {
 
   // Header
   if (activeFilter === 'all') {
-    thead.innerHTML = `<tr><th>Overall</th><th>Rider</th><th>Men's</th><th>Women's</th><th>Pts</th><th>Chaos</th></tr>`;
+    thead.innerHTML = `<tr><th>Overall</th><th>Rider</th><th>Pts</th><th>Chaos</th></tr>`;
   } else if (activeFilter === 'm') {
     thead.innerHTML = `<tr><th>Pos</th><th>Rider</th><th>Overall</th><th>Pts</th><th>Chaos</th></tr>`;
   } else {
@@ -316,14 +316,10 @@ function renderResults() {
       : `<span style="color:var(--muted)">—</span>`;
 
     if (activeFilter === 'all') {
-      const mPosCell = r.mPos ? `<span class="m-pos">${r.mPos}</span>` : `<span style="color:var(--muted)">—</span>`;
-      const wPosCell = r.wPos ? `<span class="w-pos">${r.wPos}</span>` : `<span style="color:var(--muted)">—</span>`;
       const tag = `<span class="gender-tag ${r.gender}">${r.gender === 'f' ? 'W' : 'M'}</span>`;
       tr.innerHTML = `
         <td><span class="pos-num">${r.overallPos}</span></td>
         <td>${r.name}${tag}</td>
-        <td>${mPosCell}</td>
-        <td>${wPosCell}</td>
         <td><span class="pts-val" style="color:${r.gender === 'f' ? 'var(--blue)' : 'var(--red)'}">${r.pts}</span></td>
         <td>${chaosCell}</td>`;
     } else if (activeFilter === 'm') {
