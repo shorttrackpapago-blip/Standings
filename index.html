@@ -225,10 +225,16 @@ function buildStandings(settingsRows, rosterRows) {
     }
   }));
 
+  const BEST_N = 11;
+
+  // Store per-race results per rider, then compute stats after
+  const riderRaces = {}; // { name: [{pts, genderPos, chaos}] }
+  riderSet.forEach(name => { riderRaces[name] = []; });
+
   const stats = {};
   riderSet.forEach(name => {
     const gender = genderMap[name.toLowerCase()] || 'm';
-    stats[name] = { name, gender, points: 0, wins: 0, chaos: 0, top5s: 0, top10s: 0, finishes: 0, posSum: 0, genderPosSum: 0 };
+    stats[name] = { name, gender, wins: 0, chaos: 0, top5s: 0, top10s: 0, finishes: 0, genderPosSum: 0 };
   });
 
   const totalRaces = weeks.length;
@@ -238,18 +244,20 @@ function buildStandings(settingsRows, rosterRows) {
     const femaleCol = col.filter(r => (genderMap[canonical(r.name).toLowerCase()] || (r.isFemale ? 'f' : 'm')) === 'f');
 
     col.forEach((rider, overallIdx) => {
-      const overallPos = overallIdx + 1;
-      const name       = canonical(rider.name);
+      const name = canonical(rider.name);
       if (!stats[name]) return;
 
       const gender    = genderMap[name.toLowerCase()] || (rider.isFemale ? 'f' : 'm');
       const genderCol = gender === 'f' ? femaleCol : maleCol;
       const genderPos = genderCol.findIndex(r => canonical(r.name).toLowerCase() === name.toLowerCase()) + 1;
+      const pts       = Math.max(1, 101 - genderPos);
 
-      stats[name].points   += Math.max(1, 101 - genderPos);
+      // Store race result for best-11 calculation
+      riderRaces[name].push({ pts, genderPos, chaos: rider.chaos });
+
+      // Whole-season stats (no cap)
       stats[name].chaos    += rider.chaos;
       stats[name].finishes += 1;
-      stats[name].posSum        += overallPos;
       stats[name].genderPosSum += genderPos;
 
       if (genderPos === 1) stats[name].wins   += 1;
@@ -258,11 +266,23 @@ function buildStandings(settingsRows, rosterRows) {
     });
   });
 
+  // Now compute best-11 points, avgFin, and avgAll
   Object.values(stats).forEach(r => {
-    const posSum = r.gender === 'f' ? r.genderPosSum : r.posSum;
-    r.avgFin = r.finishes > 0 ? posSum / r.finishes : 0;
-    r.finPct = totalRaces  > 0 ? (r.finishes / totalRaces) * 100 : 0;
-    r.avgAll = totalRaces  > 0 ? posSum / totalRaces : 0;
+    const races = riderRaces[r.name] || [];
+
+    // Sort races by pts descending, take best BEST_N
+    const sorted   = [...races].sort((a, b) => b.pts - a.pts);
+    const best     = sorted.slice(0, BEST_N);
+
+    r.points  = best.reduce((sum, x) => sum + x.pts, 0);
+
+    // avgFin = avg gender-relative position across best 11
+    r.avgFin  = best.length > 0 ? best.reduce((sum, x) => sum + x.genderPos, 0) / best.length : 0;
+
+    // avgAll = avg gender-relative position across whole season
+    r.avgAll  = races.length > 0 ? r.genderPosSum / races.length : 0;
+
+    r.finPct  = totalRaces > 0 ? (r.finishes / totalRaces) * 100 : 0;
   });
 
   const sort = arr => arr.sort((a, b) => b.points - a.points || a.avgFin - b.avgFin);
