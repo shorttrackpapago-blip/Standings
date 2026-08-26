@@ -274,7 +274,9 @@ function buildStandings(settingsRows, rosterRows) {
     const sorted   = [...races].sort((a, b) => b.pts - a.pts);
     const best     = sorted.slice(0, BEST_N);
 
-    r.points  = best.reduce((sum, x) => sum + x.pts, 0);
+    r.points     = best.reduce((sum, x) => sum + x.pts, 0);
+    r.top5sBest  = best.filter(x => x.genderPos <= 5).length;
+    r.top10sBest = best.filter(x => x.genderPos <= 10).length;
 
     // avgFin = avg gender-relative position across best 11
     r.avgFin  = best.length > 0 ? best.reduce((sum, x) => sum + x.genderPos, 0) / best.length : 0;
@@ -282,10 +284,21 @@ function buildStandings(settingsRows, rosterRows) {
     // avgAll = avg gender-relative position across whole season
     r.avgAll  = races.length > 0 ? r.genderPosSum / races.length : 0;
 
+    // whole season points (no cap) for tiebreaker
+    r.pointsAll = races.reduce((sum, x) => sum + x.pts, 0);
+
     r.finPct  = totalRaces > 0 ? (r.finishes / totalRaces) * 100 : 0;
   });
 
-  const sort = arr => arr.sort((a, b) => b.points - a.points || a.avgFin - b.avgFin);
+  const sort = arr => arr.sort((a, b) =>
+    b.points     - a.points     ||   // 1. best-11 points
+    b.wins       - a.wins       ||   // 2. all-season wins
+    b.top5sBest  - a.top5sBest  ||   // 3. top 5s (best 11)
+    b.top10sBest - a.top10sBest ||   // 4. top 10s (best 11)
+    a.avgFin     - b.avgFin     ||   // 5. avg finish (best 11)
+    b.pointsAll  - a.pointsAll  ||   // 6. whole season points
+    a.avgAll     - b.avgAll          // 7. whole season avg finish
+  );
   const active = Object.values(stats).filter(r => r.finishes > 0);
   const all    = sort([...active]);
   const men    = sort(active.filter(r => r.gender === 'm'));
